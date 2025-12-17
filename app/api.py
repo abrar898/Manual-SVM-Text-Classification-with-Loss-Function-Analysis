@@ -60,11 +60,11 @@ def load_artifacts():
         print(f"Vectorizer not found at {vec_path}")
 
     # 4. Load Model
-    # Priority: sklearn_svm.joblib (Better Accuracy) -> best_manual_svm.joblib
+    # Priority: library_svm.joblib (Best Library Model) -> best_manual_svm.joblib
     possible_models = [
-        os.path.join(models_dir, "sklearn_svm.joblib"),
+        os.path.join(models_dir, "library_svm.joblib"),
         os.path.join(models_dir, "best_manual_svm.joblib"),
-        os.path.join(models_dir, "models", "sklearn_linear_svc.joblib"),
+        os.path.join(models_dir, "models", "library_squared_hinge.joblib"),
         os.path.join(models_dir, "models", "manual_hinge.joblib")
     ]
 

@@ -68,11 +68,14 @@ Before training, the raw text data undergoes several processing steps:
 - **Hinge** was close behind but slightly less stable during early epochs.
 
 ### Task 4 — Implement Library-Based SVM
-**Objective**: Establish a baseline using a production-grade library.
-- We used `sklearn.svm.LinearSVC`.
-- **Configuration**: `C=0.1` (Inverse regularization strength).
-- **Performance**: The library model achieved **90.2%** accuracy.
-- **Conclusion**: Our manual implementation (90.6%) successfully matched and even slightly exceeded the library baseline, proving the correctness of our custom optimization logic.
+**Objective**: Establish a baseline using a production-grade library (`scikit-learn`).
+- **File**: `scripts/library_svm.py`
+- **Models Implemented**:
+    - **Hinge Loss**: `LinearSVC(loss='hinge')`
+    - **Squared Hinge Loss**: `LinearSVC(loss='squared_hinge')`
+    - **Logistic Loss**: `LogisticRegression()`
+- **Performance**: The library models achieved ~90.2% accuracy, serving as a strong benchmark for our manual implementation.
+- **Conclusion**: Our manual implementation (90.6%) successfully matched and even slightly exceeded the library baseline.
 
 ---
 
@@ -101,7 +104,7 @@ We executed the training pipeline entirely in the cloud.
     1. Receives text.
     2. Loads the saved `vectorizer.joblib`.
     3. Transforms text to vectors.
-    4. Loads `best_manual_svm.joblib`.
+    4. Loads `best_manual_svm.joblib` (or library model).
     5. Computes dot product score.
     6. Returns label based on sign of score.
 
@@ -129,10 +132,11 @@ Train the Manual SVM model (this may take 1-2 minutes):
 python3 scripts/manual_svm.py --epochs 40 --lambda_param 0.000001 --save best_manual_svm.joblib
 ```
 
-Train the Library Baseline:
+Train the Library Baseline (Squared Hinge):
 ```bash
-python3 scripts/sklearn_svm.py --save sklearn_svm.joblib
+python3 scripts/library_svm.py --loss squared_hinge --save library_svm.joblib
 ```
+*(You can also use `--loss hinge` or `--loss logistic`)*
 
 ### 4. API Deployment
 Start the web server:

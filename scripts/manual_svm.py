@@ -37,7 +37,8 @@ def main():
     print(f"Test Accuracy: {test_acc:.4f}")
     
     if args.save:
-        os.makedirs(os.path.dirname(args.save), exist_ok=True)
+        if os.path.dirname(args.save):
+            os.makedirs(os.path.dirname(args.save), exist_ok=True)
         joblib.dump(model, args.save)
         print(f"Model saved to {args.save}")
 

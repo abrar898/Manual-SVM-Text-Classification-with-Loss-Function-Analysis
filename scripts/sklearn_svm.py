@@ -23,8 +23,8 @@ def main():
     X_test, y_test = joblib.load(test_path)
     
     print("Training Sklearn LinearSVC...")
-    # LinearSVC minimizes squared hinge loss by default with l2 penalty.
-    model = LinearSVC(max_iter=1000, random_state=42)
+    # LinearSVC with C=0.1 often generalizes better for text classification
+    model = LinearSVC(C=0.1, max_iter=1000, random_state=42)
     model.fit(X_train, y_train)
     
     preds = model.predict(X_test)

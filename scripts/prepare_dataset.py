@@ -82,10 +82,11 @@ def main():
 
     # 3. Vectorize
     print("Vectorizing data (TfidfVectorizer)...")
-    # Limit features to keep it manageable for manual SVM implementation if needed, 
-    # but sparse matrices handle large features well. 
-    # Let's use 5000 features to keep the manual training reasonably fast for demonstration.
-    vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
+    # Optimization for better accuracy:
+    # 1. ngram_range=(1, 2) includes bigrams (e.g., "not good") which are crucial for sentiment.
+    # 2. Removed stop_words="english" because it strips words like "not", "no", "never".
+    # 3. Increased max_features to 20000 to capture more vocabulary.
+    vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20000)
     X = vectorizer.fit_transform(X_text)
 
     # 4. Split 80/20

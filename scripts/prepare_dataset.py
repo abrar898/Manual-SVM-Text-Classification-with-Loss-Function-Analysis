@@ -85,8 +85,8 @@ def main():
     # Optimization for better accuracy:
     # 1. ngram_range=(1, 2) includes bigrams (e.g., "not good") which are crucial for sentiment.
     # 2. Removed stop_words="english" because it strips words like "not", "no", "never".
-    # 3. Increased max_features to 20000 to capture more vocabulary.
-    vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20000)
+    # 3. max_features=10000 balances accuracy and memory usage for cloud environments.
+    vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=10000)
     X = vectorizer.fit_transform(X_text)
 
     # 4. Split 80/20

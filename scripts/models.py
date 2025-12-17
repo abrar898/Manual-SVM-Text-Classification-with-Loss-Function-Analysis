@@ -13,7 +13,9 @@ class ManualSVM:
         self.history = {'loss': [], 'accuracy': []}
 
     def _init_weights(self, n_features):
-        self.w = np.zeros(n_features)
+        # Xavier/Glorot Initialization for better starting point
+        limit = np.sqrt(1.0 / n_features)
+        self.w = np.random.normal(0, limit, n_features)
         self.b = 0
         # Adam parameters
         self.m_w = np.zeros(n_features)

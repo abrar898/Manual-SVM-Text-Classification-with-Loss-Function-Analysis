@@ -4,7 +4,7 @@ import os
 import sys
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 def main():
     parser = argparse.ArgumentParser()
@@ -40,8 +40,17 @@ def main():
     model.fit(X_train, y_train)
     
     preds = model.predict(X_test)
+    
     acc = accuracy_score(y_test, preds)
-    print(f"Test Accuracy: {acc:.4f}")
+    prec = precision_score(y_test, preds)
+    rec = recall_score(y_test, preds)
+    f1 = f1_score(y_test, preds)
+    
+    print("-" * 60)
+    print(f"{'Model':<25} {'Accuracy':<10} {'Precision':<10} {'Recall':<10} {'F1':<10}")
+    print("-" * 60)
+    print(f"{f'Library {args.loss}':<25} {acc:<10.4f} {prec:<10.4f} {rec:<10.4f} {f1:<10.4f}")
+    print("-" * 60)
     
     if args.save:
         if os.path.dirname(args.save):

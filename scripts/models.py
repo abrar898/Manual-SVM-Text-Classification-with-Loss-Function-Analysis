@@ -1,7 +1,8 @@
 import numpy as np
+import time
 
 class ManualSVM:
-    def __init__(self, loss='hinge', learning_rate=0.01, lambda_param=0.01, epochs=10, batch_size=32):
+    def __init__(self, loss='hinge', learning_rate=0.001, lambda_param=0.0001, epochs=10, batch_size=256):
         self.loss_type = loss
         self.lr = learning_rate
         self.lambda_param = lambda_param
@@ -14,21 +15,27 @@ class ManualSVM:
     def _init_weights(self, n_features):
         self.w = np.zeros(n_features)
         self.b = 0
+        # Adam parameters
+        self.m_w = np.zeros(n_features)
+        self.v_w = np.zeros(n_features)
+        self.m_b = 0
+        self.v_b = 0
+        self.beta1 = 0.9
+        self.beta2 = 0.999
+        self.epsilon = 1e-8
+        self.t = 0
 
     def _compute_loss(self, X, y):
-        # X: (N, d), y: (N,)
+        # Vectorized loss computation
         scores = X.dot(self.w) + self.b
         
         if self.loss_type == 'hinge':
-            # max(0, 1 - y*s)
             losses = np.maximum(0, 1 - y * scores)
             data_loss = np.mean(losses)
         elif self.loss_type == 'squared_hinge':
-            # max(0, 1 - y*s)^2
             losses = np.maximum(0, 1 - y * scores) ** 2
             data_loss = np.mean(losses)
         elif self.loss_type == 'logistic':
-            # log(1 + exp(-y*s))
             z = -y * scores
             data_loss = np.mean(np.logaddexp(0, z))
         else:
@@ -38,9 +45,6 @@ class ManualSVM:
         return data_loss + reg_loss
 
     def _compute_gradients(self, X_batch, y_batch):
-        # X_batch: (B, d) sparse or dense
-        # y_batch: (B,)
-        
         n_samples = X_batch.shape[0]
         scores = X_batch.dot(self.w) + self.b
         margins = y_batch * scores
@@ -53,24 +57,27 @@ class ManualSVM:
             if np.any(mask):
                 X_active = X_batch[mask]
                 y_active = y_batch[mask]
+                # Efficient sparse dot product
                 dw_data = -X_active.T.dot(y_active) / n_samples
                 db_data = -np.sum(y_active) / n_samples
                 dw += dw_data
                 db += db_data
-
+                
         elif self.loss_type == 'squared_hinge':
             mask = (1 - margins) > 0
             if np.any(mask):
                 X_active = X_batch[mask]
                 y_active = y_batch[mask]
                 scores_active = scores[mask]
+                
                 factors = 2 * (1 - y_active * scores_active)
                 grad_scalars = -factors * y_active
+                
                 dw_data = X_active.T.dot(grad_scalars) / n_samples
                 db_data = np.sum(grad_scalars) / n_samples
                 dw += dw_data
                 db += db_data
-
+                
         elif self.loss_type == 'logistic':
             z = margins
             p = np.zeros_like(z)
@@ -84,7 +91,7 @@ class ManualSVM:
             db_data = np.sum(grad_scalars) / n_samples
             dw += dw_data
             db += db_data
-
+            
         dw += 2 * self.lambda_param * self.w
         return dw, db
 
@@ -92,7 +99,10 @@ class ManualSVM:
         n_samples, n_features = X.shape
         self._init_weights(n_features)
         
+        print(f"Training on {n_samples} samples, {n_features} features...")
+        
         for epoch in range(self.epochs):
+            start_time = time.time()
             indices = np.arange(n_samples)
             np.random.shuffle(indices)
             
@@ -104,14 +114,28 @@ class ManualSVM:
                 
                 dw, db = self._compute_gradients(X_batch, y_batch)
                 
-                self.w -= self.lr * dw
-                self.b -= self.lr * db
+                # Adam Update
+                self.t += 1
+                self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * dw
+                self.m_b = self.beta1 * self.m_b + (1 - self.beta1) * db
+                self.v_w = self.beta2 * self.v_w + (1 - self.beta2) * (dw ** 2)
+                self.v_b = self.beta2 * self.v_b + (1 - self.beta2) * (db ** 2)
+                
+                m_w_hat = self.m_w / (1 - self.beta1 ** self.t)
+                m_b_hat = self.m_b / (1 - self.beta1 ** self.t)
+                v_w_hat = self.v_w / (1 - self.beta2 ** self.t)
+                v_b_hat = self.v_b / (1 - self.beta2 ** self.t)
+                
+                self.w -= self.lr * m_w_hat / (np.sqrt(v_w_hat) + self.epsilon)
+                self.b -= self.lr * m_b_hat / (np.sqrt(v_b_hat) + self.epsilon)
             
+            # Compute loss/acc less frequently if needed, but for 20 epochs it's fine
             loss = self._compute_loss(X, y)
             acc = self.score(X, y)
             self.history['loss'].append(loss)
             self.history['accuracy'].append(acc)
-            print(f"Epoch {epoch+1}/{self.epochs} - Loss: {loss:.4f} - Acc: {acc:.4f}")
+            epoch_time = time.time() - start_time
+            print(f"Epoch {epoch+1}/{self.epochs} - Loss: {loss:.4f} - Acc: {acc:.4f} - Time: {epoch_time:.2f}s")
 
     def predict(self, X):
         scores = X.dot(self.w) + self.b

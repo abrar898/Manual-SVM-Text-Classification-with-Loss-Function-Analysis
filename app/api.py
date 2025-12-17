@@ -19,25 +19,39 @@ class PredictionResponse(BaseModel):
 def load_artifacts():
     global model, vectorizer
     # Paths - assume running from root or app directory
-    # We try to find the artifacts relative to current working directory
     base_dir = os.getcwd()
     
-    # Check if we are in 'app' dir or root
+    # 1. Setup paths for data and models
+    # Check if we are in root (data/ exists) or in app/ (../data/ exists)
     if os.path.exists(os.path.join(base_dir, "data", "vectorizer.joblib")):
         data_dir = os.path.join(base_dir, "data")
-        models_dir = os.path.join(base_dir, "models")
+        # Models might be in root or models/
+        models_dir = base_dir 
     elif os.path.exists(os.path.join(base_dir, "..", "data", "vectorizer.joblib")):
         data_dir = os.path.join(base_dir, "..", "data")
-        models_dir = os.path.join(base_dir, "..", "models")
+        models_dir = os.path.join(base_dir, "..")
     else:
-        # Fallback for Docker/Cloud
-        data_dir = "/workspace/data" # Example
-        models_dir = "/workspace/models"
-        if not os.path.exists(data_dir):
-             print("Warning: Artifacts not found.")
-             return
+        # Fallback
+        data_dir = "data"
+        models_dir = "."
 
-    # Load Vectorizer
+    # 2. Add scripts/ to sys.path so we can import 'models' module if needed for ManualSVM
+    scripts_path = os.path.join(base_dir, "scripts")
+    if not os.path.exists(scripts_path):
+        scripts_path = os.path.join(base_dir, "..", "scripts")
+    
+    if os.path.exists(scripts_path):
+        import sys
+        if scripts_path not in sys.path:
+            sys.path.append(scripts_path)
+        try:
+            # Try importing ManualSVM to ensure class is available for joblib
+            from models import ManualSVM
+            print("Successfully imported ManualSVM class")
+        except ImportError as e:
+            print(f"Could not import ManualSVM: {e}")
+
+    # 3. Load Vectorizer
     vec_path = os.path.join(data_dir, "vectorizer.joblib")
     if os.path.exists(vec_path):
         vectorizer = joblib.load(vec_path)
@@ -45,41 +59,26 @@ def load_artifacts():
     else:
         print(f"Vectorizer not found at {vec_path}")
 
-    # Load Model - Try to load the best one, or default to manual_hinge
-    # Priority: sklearn_linear_svc -> manual_hinge
-    model_name = "sklearn_linear_svc.joblib"
-    model_path = os.path.join(models_dir, model_name)
-    
-    if not os.path.exists(model_path):
-        model_name = "manual_hinge.joblib"
-        model_path = os.path.join(models_dir, model_name)
-    
-    if os.path.exists(model_path):
-        # We need to make sure ManualSVM class is available if loading a manual model
-        # If it's a manual model, we might need to import the class.
-        # joblib should handle it if the class is in path, but since we are in app/api.py, 
-        # scripts/manual_svm.py might not be in path.
-        # We'll try to add scripts to path.
-        import sys
-        if os.path.exists(os.path.join(base_dir, "scripts")):
-            sys.path.append(os.path.join(base_dir, "scripts"))
-        elif os.path.exists(os.path.join(base_dir, "..", "scripts")):
-            sys.path.append(os.path.join(base_dir, "..", "scripts"))
-            
-        try:
-            # If it's manual model, we need the class definition
-            # We can try importing it
+    # 4. Load Model
+    # Priority: best_manual_svm.joblib (root) -> sklearn_svm.joblib (root) -> models/manual_hinge.joblib
+    possible_models = [
+        os.path.join(models_dir, "best_manual_svm.joblib"),
+        os.path.join(models_dir, "sklearn_svm.joblib"),
+        os.path.join(models_dir, "models", "manual_hinge.joblib"), # If in models subdir
+        os.path.join(models_dir, "models", "sklearn_linear_svc.joblib")
+    ]
+
+    for path in possible_models:
+        if os.path.exists(path):
             try:
-                from manual_svm import ManualSVM
-            except ImportError:
-                pass # Might be sklearn model
-                
-            model = joblib.load(model_path)
-            print(f"Loaded model from {model_path}")
-        except Exception as e:
-            print(f"Failed to load model: {e}")
-    else:
-        print(f"Model not found at {model_path}")
+                model = joblib.load(path)
+                print(f"Loaded model from {path}")
+                break
+            except Exception as e:
+                print(f"Found model at {path} but failed to load: {e}")
+    
+    if model is None:
+        print("No model loaded!")
 
 @app.on_event("startup")
 async def startup_event():

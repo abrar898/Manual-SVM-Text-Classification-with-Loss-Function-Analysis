@@ -60,12 +60,12 @@ def load_artifacts():
         print(f"Vectorizer not found at {vec_path}")
 
     # 4. Load Model
-    # Priority: best_manual_svm.joblib (root) -> sklearn_svm.joblib (root) -> models/manual_hinge.joblib
+    # Priority: sklearn_svm.joblib (Better Accuracy) -> best_manual_svm.joblib
     possible_models = [
-        os.path.join(models_dir, "best_manual_svm.joblib"),
         os.path.join(models_dir, "sklearn_svm.joblib"),
-        os.path.join(models_dir, "models", "manual_hinge.joblib"), # If in models subdir
-        os.path.join(models_dir, "models", "sklearn_linear_svc.joblib")
+        os.path.join(models_dir, "best_manual_svm.joblib"),
+        os.path.join(models_dir, "models", "sklearn_linear_svc.joblib"),
+        os.path.join(models_dir, "models", "manual_hinge.joblib")
     ]
 
     for path in possible_models:

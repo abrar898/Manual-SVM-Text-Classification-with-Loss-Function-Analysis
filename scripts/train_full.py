@@ -80,7 +80,7 @@ print("Vectorizing data (TfidfVectorizer, ngram_range=(1, 2), min_df=5, no stopw
 vectorizer = TfidfVectorizer(
     ngram_range=(1, 2), 
     min_df=5,
-    max_features=50000, # Cap features to prevent memory explosion
+    max_features=20000, # Cap features to prevent memory explosion
     sublinear_tf=True
 )
 X = vectorizer.fit_transform(X_text)

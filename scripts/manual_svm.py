@@ -11,8 +11,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--loss", type=str, default="hinge", choices=["hinge", "squared_hinge", "logistic"])
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--lr", type=float, default=0.01)
-    parser.add_argument("--batch", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--lambda_param", type=float, default=0.00001)
+    parser.add_argument("--batch", type=int, default=256)
     parser.add_argument("--save", type=str, default=None)
     parser.add_argument("--data_dir", type=str, default="data/")
     args = parser.parse_args()
@@ -30,7 +31,7 @@ def main():
     X_test, y_test = joblib.load(test_path)
     
     print(f"Training Manual SVM with {args.loss} loss...")
-    model = ManualSVM(loss=args.loss, epochs=args.epochs, learning_rate=args.lr, batch_size=args.batch)
+    model = ManualSVM(loss=args.loss, epochs=args.epochs, learning_rate=args.lr, lambda_param=args.lambda_param, batch_size=args.batch)
     model.fit(X_train, y_train)
     
     test_acc = model.score(X_test, y_test)
